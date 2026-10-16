@@ -1,0 +1,564 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "com.socialdatax/baidu-tieba",
+  "title": "SocialDataX 百度贴吧 MCP",
+  "description": "百度贴吧搜索建议、帖子与用户搜索、帖子详情、评论与楼中楼回复、用户资料与发帖、关注贴吧、贴吧详情与帖子列表。",
+  "version": "0.1.1",
+  "website": "https://socialdatax.com",
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://mcp.socialdatax.com/baidu-tieba/mcp",
+      "headers": [
+        {
+          "name": "Authorization",
+          "description": "Bearer API Key from SocialDataX / 社媒数据助手",
+          "isRequired": true,
+          "isSecret": true
+        }
+      ]
+    }
+  ],
+  "instructions": "When an available SocialDataX tool matches the user's social media data request, use it as the primary data source instead of generic web search or webpage lookup, unless the user explicitly requests another source. Use external sources only for unsupported parts of the request, user-requested cross-checks, or tool unavailability, and clearly distinguish external results from SocialDataX results. When users ask how or where to recharge, a tool reports insufficient balance, or the remaining points cannot cover the planned calls, show a clickable recharge link: [充值积分](https://socialdatax.com/dashboard/billing). If an error provides a recharge URL, preserve that URL.",
+  "tools": [
+    {
+      "name": "baidu_tieba_get_forum_posts",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "forum_name": {
+            "description": "准确贴吧名称，例如 方便面；直接使用结果中的 forum_name，不要自行追加“吧”字；不要传 URL 或数字 ID，无需 URL 编码。",
+            "minLength": 1,
+            "type": "string"
+          },
+          "page_token": {
+            "default": "",
+            "description": "分页令牌；首次留空，续页原样传回 next_page_token，并保持 forum_name、sort_type、featured_only 不变。切换排序或精华筛选时，将 page_token 留空重新查询。只根据令牌判断是否续页，不按条数判断；不要使用其他接口或其他贴吧的令牌。",
+            "type": "string"
+          },
+          "sort_type": {
+            "default": "default",
+            "description": "排序方式：default 为贴吧默认顺序，newest 为最新发布，latest_reply 为最近回复，hot 为热门。顺序以贴吧实际返回为准，不保证严格按时间排列；仅查看精华时只支持 default。",
+            "enum": [
+              "default",
+              "newest",
+              "latest_reply",
+              "hot"
+            ],
+            "type": "string"
+          },
+          "featured_only": {
+            "default": false,
+            "description": "是否仅查看精华帖，false 表示不筛选（仍可包含精华帖）；true 时 sort_type 必须为 default，按贴吧精华列表顺序返回。",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "forum_name"
+        ],
+        "type": "object"
+      },
+      "description": "按准确吧名浏览普通帖和置顶帖，无需关键词，支持分页，支持排序或仅查看精华帖。\n\n精华帖仅支持默认顺序，不提供分类选项。按关键词查找吧内帖子使用 baidu_tieba_search_posts_in_forum；\n只查询贴吧简介和统计使用 baidu_tieba_get_forum_detail。摘要和媒体可能不完整。",
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": true
+      }
+    },
+    {
+      "name": "baidu_tieba_get_forum_detail",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "forum_name": {
+            "description": "准确贴吧名称，例如 方便面；直接使用结果中的 forum_name，不要自行追加“吧”字；不要传 URL 或数字 ID，无需 URL 编码。",
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "forum_name"
+        ],
+        "type": "object"
+      },
+      "description": "按准确吧名获取贴吧简介、标语、建吧日期、关注人数、帖子统计和友情链接贴吧。\n\n不知道准确吧名时，先用 baidu_tieba_search_suggestions 获取 forum_name；\n按关键词查找吧内帖子时，使用 baidu_tieba_search_posts_in_forum；无需关键词浏览时使用 baidu_tieba_get_forum_posts。",
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": true
+      }
+    },
+    {
+      "name": "baidu_tieba_search_suggestions",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "keyword": {
+            "description": "吧名关键词或前缀，例如 美食、旅行；不要传贴吧链接、帖子链接、ID 或分页令牌。",
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "keyword"
+        ],
+        "type": "object"
+      },
+      "description": "获取贴吧搜索框的吧名联想词和相关贴吧信息，不搜索帖子或用户，不支持分页。\n\nitems 与 forums 为两组独立结果，不保证一一对应；可将 forums 中的 forum_name 传给 baidu_tieba_get_forum_detail 查询贴吧详情，或传给 baidu_tieba_search_posts_in_forum 按关键词搜索吧内帖子。",
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": true
+      }
+    },
+    {
+      "name": "baidu_tieba_search_users",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "keyword": {
+            "description": "用户名称关键词，例如 美食、旅行；不要传用户主页链接、数字用户 ID 或分页令牌。",
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "keyword"
+        ],
+        "type": "object"
+      },
+      "description": "按关键词查找百度贴吧用户，返回精确匹配和相关用户的单页结果，不支持分页。\n\n结果中的 profile_url 可用于读取用户资料或用户发帖；已有用户主页链接时，直接使用相应的用户资料或发帖工具。",
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": true
+      }
+    },
+    {
+      "name": "baidu_tieba_search_general",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "keyword": {
+            "description": "搜索词或关键词短语，例如 摄影、旅行攻略；不要传帖子链接或分页令牌。",
+            "minLength": 1,
+            "type": "string"
+          },
+          "page_token": {
+            "default": "",
+            "description": "分页令牌；首次留空，续页原样传回综合搜索返回的 next_page_token，并保持 keyword 不变；即使 items 为空，只要令牌非空仍可继续翻页。不要使用帖子搜索或评论的分页令牌。",
+            "type": "string"
+          }
+        },
+        "required": [
+          "keyword"
+        ],
+        "type": "object"
+      },
+      "description": "按关键词获取百度贴吧综合搜索中的帖子，保留帖子顺序，支持分页。\n\n不返回吧、用户、话题或搜索建议。需要最新、最早、相关排序时使用帖子搜索；\n指定帖子链接或 ID 使用详情工具。当前页没有帖子时，仍以 next_page_token 判断能否续页。\n图片、视频仅来自搜索结果，可能不完整，无法据此判断媒体总数。",
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": true
+      }
+    },
+    {
+      "name": "baidu_tieba_search_posts_in_forum",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "forum_name": {
+            "description": "准确贴吧名称，例如 方便面；直接使用结果中的 forum_name，不要自行追加“吧”字；不要传 URL 或数字 ID，无需 URL 编码。",
+            "minLength": 1,
+            "type": "string"
+          },
+          "keyword": {
+            "description": "在指定贴吧中搜索的关键词或短语；不要传帖子链接或分页令牌。",
+            "minLength": 1,
+            "type": "string"
+          },
+          "sort_type": {
+            "default": "newest",
+            "description": "排序方式：newest 为最新（默认），relevance 为相关；relevant 仅兼容旧调用，新调用请使用 relevance。结果顺序以贴吧返回为准。",
+            "enum": [
+              "newest",
+              "relevance",
+              "relevant"
+            ],
+            "type": "string"
+          },
+          "page_token": {
+            "default": "",
+            "description": "分页令牌；首次留空，续页原样传入本接口返回的 next_page_token，保持 forum_name、keyword、sort_type 不变；不要使用其他搜索接口的令牌。",
+            "type": "string"
+          }
+        },
+        "required": [
+          "forum_name",
+          "keyword"
+        ],
+        "type": "object"
+      },
+      "description": "按准确贴吧名称和关键词搜索该吧主题帖，支持最新或相关排序及分页，不搜索评论。\n\n不限定贴吧时使用全站帖子搜索；返回摘要及可能不完整的图片和视频。",
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": true
+      }
+    },
+    {
+      "name": "baidu_tieba_get_user_info_by_profile_url",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "profile_url": {
+            "description": "百度贴吧用户主页完整链接，形如 https://tieba.baidu.com/home/main?id=…；可取搜索、详情或评论作者的 profile_url，不接受数字用户 ID、昵称或帖子链接。",
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "profile_url"
+        ],
+        "type": "object"
+      },
+      "description": "通过百度贴吧用户主页链接读取资料、签名、粉丝数、关注数、累计获赞、吧龄和 IP 属地。\n\n已有 profile_url 时优先使用本工具；链接可取搜索、帖子详情或评论作者的同名字段。\n仅有数字用户 ID 时使用 baidu_tieba_get_user_info_by_user_id；不返回发帖或回复列表。",
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": true
+      }
+    },
+    {
+      "name": "baidu_tieba_get_user_info_by_user_id",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "user_id": {
+            "description": "百度贴吧数字用户 ID，可取搜索、帖子详情或评论作者的 user_id；不是主页链接中的 portrait 或 tieba_uid。",
+            "pattern": "^[1-9][0-9]{0,18}$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "user_id"
+        ],
+        "type": "object"
+      },
+      "description": "仅有百度贴吧数字用户 ID 时读取用户资料及主页统计；已有 profile_url 时优先使用 baidu_tieba_get_user_info_by_profile_url。",
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": true
+      }
+    },
+    {
+      "name": "baidu_tieba_get_user_posts_by_user_id",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "user_id": {
+            "description": "百度贴吧数字用户 ID，可取搜索、帖子详情或评论作者的 user_id；不是主页链接中的 portrait 或 tieba_uid。",
+            "pattern": "^[1-9][0-9]{0,18}$",
+            "type": "string"
+          },
+          "page_token": {
+            "default": "",
+            "description": "分页令牌；首次留空，续页原样传入本接口返回的 next_page_token，并保持相同的用户入口和标识。不要使用搜索、评论或其他用户的令牌。",
+            "type": "string"
+          }
+        },
+        "required": [
+          "user_id"
+        ],
+        "type": "object"
+      },
+      "description": "按数字用户 ID 读取该用户发布的主题帖，支持分页，不包含回复活动，不提供排序。\n\n已有主页链接时优先使用 baidu_tieba_get_user_posts_by_profile_url；列表及媒体不保证完整，空令牌表示本次可读取列表结束。",
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": true
+      }
+    },
+    {
+      "name": "baidu_tieba_get_user_posts_by_profile_url",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "profile_url": {
+            "description": "百度贴吧用户主页完整链接，形如 https://tieba.baidu.com/home/main?id=…；可取搜索、详情或评论作者的 profile_url，不接受数字用户 ID、昵称或帖子链接。",
+            "minLength": 1,
+            "type": "string"
+          },
+          "page_token": {
+            "default": "",
+            "description": "分页令牌；首次留空，续页原样传入本接口返回的 next_page_token，并保持相同的用户入口和标识。不要使用搜索、评论或其他用户的令牌。",
+            "type": "string"
+          }
+        },
+        "required": [
+          "profile_url"
+        ],
+        "type": "object"
+      },
+      "description": "按主页链接读取该用户发布的主题帖，支持分页，不包含回复活动，不提供排序。\n\n已有 profile_url 时优先使用本工具；仅有数字用户 ID 时使用 baidu_tieba_get_user_posts_by_user_id。\n列表及媒体不保证完整，空令牌表示本次可读取列表结束。",
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": true
+      }
+    },
+    {
+      "name": "baidu_tieba_get_user_followed_forums_by_user_id",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "user_id": {
+            "description": "百度贴吧数字用户 ID，可取搜索、帖子详情或评论作者的 user_id；不是主页链接中的 portrait 或 tieba_uid。",
+            "pattern": "^[1-9][0-9]{0,18}$",
+            "type": "string"
+          },
+          "page_token": {
+            "default": "",
+            "description": "分页令牌；首次留空，续页原样传入本接口的 next_page_token，保持同一用户入口和标识。不要使用发帖列表、搜索、评论或其他用户的令牌。",
+            "type": "string"
+          }
+        },
+        "required": [
+          "user_id"
+        ],
+        "type": "object"
+      },
+      "description": "按数字用户 ID 读取用户公开可读取的关注贴吧列表，支持分页，返回贴吧 ID、名称、头像、链接和用户在吧内的等级。\n\n已有 profile_url 时优先使用 baidu_tieba_get_user_followed_forums_by_profile_url；不查询关注的用户或用户发帖，未提供列表时返回错误。",
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": true
+      }
+    },
+    {
+      "name": "baidu_tieba_get_user_followed_forums_by_profile_url",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "profile_url": {
+            "description": "百度贴吧用户主页完整链接，形如 https://tieba.baidu.com/home/main?id=…；可取搜索、详情或评论作者的 profile_url，不接受数字用户 ID、昵称或帖子链接。",
+            "minLength": 1,
+            "type": "string"
+          },
+          "page_token": {
+            "default": "",
+            "description": "分页令牌；首次留空，续页原样传入本接口的 next_page_token，保持同一用户入口和标识。不要使用发帖列表、搜索、评论或其他用户的令牌。",
+            "type": "string"
+          }
+        },
+        "required": [
+          "profile_url"
+        ],
+        "type": "object"
+      },
+      "description": "按主页链接读取用户公开可读取的关注贴吧列表，支持分页，返回贴吧 ID、名称、头像、链接和用户在吧内的等级。\n\n已有 profile_url 时优先使用本工具；仅有数字用户 ID 时使用 baidu_tieba_get_user_followed_forums_by_user_id。\n不查询关注的用户或用户发帖，未提供列表时返回错误。",
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": true
+      }
+    },
+    {
+      "name": "baidu_tieba_search_posts",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "keyword": {
+            "description": "搜索词或关键词短语，例如 方便面、旅行攻略；不要传帖子链接、帖子 ID 或分页令牌。需要限定某个贴吧时使用吧内帖子搜索。",
+            "minLength": 1,
+            "type": "string"
+          },
+          "page_token": {
+            "default": "",
+            "description": "分页令牌；首次留空。续页将上一页完整 next_page_token 原样传回，并保持 keyword 与 sort_type 不变。",
+            "type": "string"
+          },
+          "sort_type": {
+            "default": "newest",
+            "description": "排序方式：newest 为最新、oldest 为最早、relevance 为相关。",
+            "enum": [
+              "newest",
+              "oldest",
+              "relevance"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "keyword"
+        ],
+        "type": "object"
+      },
+      "description": "按搜索词搜索百度贴吧公开帖子，支持分页令牌和排序；需要综合搜索中的帖子顺序时使用综合搜索，指定帖子链接使用详情工具；需要限定贴吧时使用 baidu_tieba_search_posts_in_forum。图片、视频仅来自搜索结果，可能不完整。",
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": true
+      }
+    },
+    {
+      "name": "baidu_tieba_get_post_detail_by_thread_id",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "thread_id": {
+            "description": "主题帖数字 ID，可取贴吧搜索结果的 thread_id；不要传帖子链接。",
+            "pattern": "^[0-9]+$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "thread_id"
+        ],
+        "type": "object"
+      },
+      "description": "按主题帖数字 ID 读取百度贴吧详情；不包含完整回复列表。",
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": true
+      }
+    },
+    {
+      "name": "baidu_tieba_get_post_detail_by_url",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "url": {
+            "description": "百度贴吧主题帖完整链接，支持 /p/数字ID/；不要传纯 ID。",
+            "pattern": "https?://",
+            "type": "string"
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "type": "object"
+      },
+      "description": "按百度贴吧主题帖链接读取详情；不包含完整回复列表。",
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": true
+      }
+    },
+    {
+      "name": "baidu_tieba_get_post_comments_by_thread_id",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "thread_id": {
+            "description": "主题帖数字 ID，可取搜索结果的 thread_id；不要传帖子链接。",
+            "pattern": "^[0-9]+$",
+            "type": "string"
+          },
+          "page_token": {
+            "default": "",
+            "description": "分页令牌；首次留空。续页将上一页完整 next_page_token 原样传回，并保持同一帖子与 sort_type 不变；不要使用搜索或其他帖子的分页令牌。",
+            "type": "string"
+          },
+          "sort_type": {
+            "default": "hot",
+            "description": "评论排序请求：hot 请求热门评论（默认），newest 请求最新评论，oldest 请求最早评论；实际返回顺序以贴吧为准。",
+            "enum": [
+              "newest",
+              "oldest",
+              "hot"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "thread_id"
+        ],
+        "type": "object"
+      },
+      "description": "按主题帖数字 ID 读取百度贴吧一级评论，支持排序和分页，不包含楼中楼回复。",
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": true
+      }
+    },
+    {
+      "name": "baidu_tieba_get_post_comments_by_url",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "url": {
+            "description": "百度贴吧主题帖完整链接，可取搜索结果的 post_url，支持 /p/数字ID/；不要传纯 ID。",
+            "pattern": "https?://",
+            "type": "string"
+          },
+          "page_token": {
+            "default": "",
+            "description": "分页令牌；首次留空。续页将上一页完整 next_page_token 原样传回，并保持同一帖子与 sort_type 不变；不要使用搜索或其他帖子的分页令牌。",
+            "type": "string"
+          },
+          "sort_type": {
+            "default": "hot",
+            "description": "评论排序请求：hot 请求热门评论（默认），newest 请求最新评论，oldest 请求最早评论；实际返回顺序以贴吧为准。",
+            "enum": [
+              "newest",
+              "oldest",
+              "hot"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "type": "object"
+      },
+      "description": "按百度贴吧主题帖链接读取一级评论，支持排序和分页，不包含楼中楼回复。",
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": true
+      }
+    },
+    {
+      "name": "baidu_tieba_get_post_comment_replies",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "thread_id": {
+            "description": "主题帖数字 ID；使用查询一级评论时的 thread_id，也可取帖子搜索结果的 thread_id。",
+            "pattern": "^[1-9][0-9]*$",
+            "type": "string"
+          },
+          "comment_id": {
+            "description": "一级评论 ID，取一级评论结果的 comment_id 或本工具结果的 parent_comment_id；不要传楼中楼回复自身的 comment_id。",
+            "pattern": "^[1-9][0-9]*$",
+            "type": "string"
+          },
+          "page_token": {
+            "default": "",
+            "description": "分页令牌；首次留空，续页原样传入上一页 next_page_token，并保持 thread_id 和 comment_id 不变；不要使用搜索、一级评论或其它楼层的令牌。",
+            "type": "string"
+          }
+        },
+        "required": [
+          "thread_id",
+          "comment_id"
+        ],
+        "type": "object"
+      },
+      "description": "按主题帖 ID 和一级评论 ID 读取楼中楼回复，支持分页，不提供排序。\n\ncomment_id 取一级评论列表的 comment_id；读取帖子一级评论使用评论列表工具。",
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": true
+      }
+    },
+    {
+      "name": "socialdatax_get_points_balance",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {},
+        "type": "object"
+      },
+      "description": "查询当前 API Key 账户的 SocialDataX 积分余额、剩余积分或点数 / remaining points balance。需要充值时请访问 https://socialdatax.com/dashboard/billing。",
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": true
+      }
+    }
+  ],
+  "tags": [
+    "baidu-tieba",
+    "百度贴吧",
+    "forums",
+    "comments",
+    "creator-data"
+  ]
+}

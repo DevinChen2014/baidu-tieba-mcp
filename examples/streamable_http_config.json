@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "socialdatax-baidu-tieba": {
+      "type": "streamable_http",
+      "url": "https://mcp.socialdatax.com/baidu-tieba/mcp",
+      "headers": {
+        "Authorization": "Bearer <SOCIALDATAX_API_KEY>"
+      }
+    }
+  }
+}

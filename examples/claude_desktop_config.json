@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "socialdatax-baidu-tieba": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-remote",
+        "https://mcp.socialdatax.com/baidu-tieba/mcp",
+        "--header",
+        "Authorization: Bearer <SOCIALDATAX_API_KEY>"
+      ]
+    }
+  }
+}

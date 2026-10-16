@@ -1,0 +1,4 @@
+[mcp_servers.socialdatax-baidu-tieba]
+enabled = true
+url = "https://mcp.socialdatax.com/baidu-tieba/mcp"
+bearer_token_env_var = "SOCIALDATAX_API_KEY"
