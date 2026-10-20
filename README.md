@@ -63,3 +63,19 @@ The command/stdio fallback in [mcp.json](mcp.json) uses `mcp-remote`. Direct HTT
 ## Metadata
 
 [server-card.json](server-card.json) contains the tool descriptions and input schemas. The implementation is privately hosted. License: MIT for the public documentation and connection examples.
+
+## Gemini CLI extension
+
+Install this service from its public GitHub repository:
+
+```sh
+gemini extensions install https://github.com/DevinChen2014/baidu-tieba-mcp
+```
+
+When prompted, enter your own `SOCIALDATAX_API_KEY`. Get a key from [SocialDataX](https://socialdatax.com/ai?from=github); business tool calls consume SocialDataX credits. The extension connects directly to the existing hosted MCP endpoint and does not include the private service implementation.
+
+Verify the connection with `gemini mcp list`. To change the saved key, run:
+
+```sh
+gemini extensions config socialdatax-baidu-tieba
+```

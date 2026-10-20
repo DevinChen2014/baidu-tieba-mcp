@@ -1,0 +1,22 @@
+{
+  "name": "socialdatax-baidu-tieba",
+  "version": "1.0.0",
+  "description": "SocialDataX: 百度贴吧搜索建议、帖子与用户搜索、帖子详情、评论与楼中楼回复、用户资料与发帖、关注贴吧、贴吧详情与帖子列表。",
+  "mcpServers": {
+    "socialdatax-baidu-tieba": {
+      "httpUrl": "https://mcp.socialdatax.com/baidu-tieba/mcp",
+      "headers": {
+        "Authorization": "Bearer ${SOCIALDATAX_API_KEY}"
+      },
+      "timeout": 300000
+    }
+  },
+  "settings": [
+    {
+      "name": "SocialDataX API Key",
+      "description": "Get your own API Key at https://socialdatax.com/ai?from=gemini-cli. Business calls consume SocialDataX credits.",
+      "envVar": "SOCIALDATAX_API_KEY",
+      "sensitive": true
+    }
+  ]
+}
